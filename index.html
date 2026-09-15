@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en" data-theme="deepslate">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark light">
+  <title>Skin Slicer — dress up Minecraft skins</title>
+  <meta name="description" content="Put hats, tops and capes on any Minecraft skin, tint every colour of every piece on its own, keep outfits and swap between them. Runs entirely in your browser.">
+  <meta name="theme-color" content="#12161A">
+
+  <!-- Link previews. og:image is left out deliberately, as in Frame & Groove. -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Skin Slicer">
+  <meta property="og:description" content="A 3D wardrobe for Minecraft skins: a base skin, items over it, every colour tintable, outfits you can swap. No account, no upload.">
+  <meta name="twitter:card" content="summary">
+
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/wardrobe.css">
+
+  <!-- Replaced at boot by the real pixel mark; this is only what shows in the
+       tab during the first few hundred milliseconds. -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Crect x='4' y='3' width='8' height='12' fill='%23DE9820'/%3E%3Crect x='1' y='3' width='3' height='6' fill='%23DE9820'/%3E%3Crect x='12' y='3' width='3' height='6' fill='%23DE9820'/%3E%3Crect x='7' y='3' width='2' height='1' fill='%235A3A12'/%3E%3Crect x='7' y='7' width='3' height='1' fill='%239BEDF1'/%3E%3C/svg%3E">
+</head>
+<body>
+  <div id="boot">
+    <div class="boot-inner">
+      <canvas id="boot-mark" class="boot-mark" width="128" height="128"></canvas>
+      <div class="boot-word">Skin <em>Slicer</em></div>
+      <div class="boot-bar" id="boot-bar" role="progressbar" aria-label="Loading"></div>
+      <div class="boot-tag" id="boot-tag">Starting up</div>
+    </div>
+  </div>
+
+  <noscript>
+    <div style="padding:48px;max-width:520px;margin:0 auto;font-family:system-ui;color:#EEF2F4">
+      <h1>Skin Slicer needs JavaScript</h1>
+      <p>The whole wardrobe — the 3D model, the tinting and the skin writer — runs in your browser.
+         Nothing is uploaded anywhere, but it does need scripting enabled.</p>
+    </div>
+  </noscript>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

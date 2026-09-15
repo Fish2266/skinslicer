@@ -1,0 +1,620 @@
+/* ============================================================================
+   FISH'S WARDROBE — this app's own layer.
+   Rides on the Frame & Groove tokens, base, components and shell. Everything
+   here is the dressing room (wardrobe · stage · inspector), the paint shop,
+   or a piece lifted from Frame & Groove's editor — the tool dock and the
+   stage chrome — that the shell copy leaves out.
+   ========================================================================= */
+
+/* The landing page gives this tool amber; the whole app wears it. */
+:root {
+  --accent: var(--amber-400);
+  --accent-hover: var(--amber-300);
+  --accent-press: var(--amber-500);
+  --accent-deep: var(--amber-700);
+  --glow-accent: 0 0 0 1px rgba(242, 179, 61, .35), 0 4px 18px rgba(222, 152, 32, .22);
+  --cat-w: 300px;
+  --insp-w: 344px;
+  --paint-w: 300px;
+  --well: var(--bg-sunken);
+  --well-edge: var(--line-hair);
+}
+:root[data-theme="bone"] {
+  --accent: var(--amber-600);
+  --accent-hover: var(--amber-500);
+  --accent-press: var(--amber-700);
+  --glow-accent: 0 0 0 1px rgba(184, 122, 21, .3), 0 4px 16px rgba(184, 122, 21, .18);
+}
+
+/* Things here are hidden with the attribute while also having a display, so
+   the attribute has to win over any class. */
+[hidden] { display: none !important; }
+
+@media (max-width: 1280px) { :root { --cat-w: 268px; --insp-w: 316px; --paint-w: 280px; } }
+@media (max-width: 1120px) { :root { --cat-w: 236px; --insp-w: 296px; --paint-w: 260px; } }
+
+.select-sm { height: 26px; font-size: var(--t-12); padding-left: var(--s-2); border-radius: var(--r-sm); }
+
+/* ======================= LAYOUT ========================================= */
+.wd-layout {
+  display: grid;
+  grid-template-columns: var(--cat-w) minmax(0, 1fr) var(--insp-w);
+  flex: 1; min-width: 0; min-height: 0;
+}
+
+/* ======================= THE WARDROBE =================================== */
+.wd-catalog {
+  display: flex; flex-direction: column; min-height: 0; min-width: 0;
+  background: var(--surface-1);
+  border-right: 1px solid var(--line-hair);
+}
+.cat-head { padding: var(--s-3); display: flex; flex-direction: column; gap: var(--s-3); border-bottom: 1px solid var(--line-hair); }
+.cat-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.cat-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 28px; padding: 0 8px 0 6px;
+  border-radius: var(--r-sm);
+  font-size: var(--t-12); font-weight: var(--w-medium); color: var(--text-3);
+  transition: background var(--d-fast) var(--ease-out), color var(--d-fast) var(--ease-out);
+}
+.cat-chip:hover { background: var(--surface-2); color: var(--text-1); }
+.cat-chip[aria-selected="true"] {
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface-2));
+  color: var(--text-1);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.cat-chip .cc-icon { display: block; width: 16px; height: 16px; }
+.cat-chip .cc-icon canvas { width: 16px; height: 16px; image-rendering: pixelated; }
+.cat-chip .cc-count { font-family: var(--f-mono); font-size: var(--t-10); color: var(--text-4); font-variant-numeric: tabular-nums; }
+
+.cat-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: var(--s-3); }
+.item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: var(--s-2); }
+.shelf-note { margin-top: var(--s-3); }
+.shelf-note .empty { padding: var(--s-8) var(--s-2); }
+
+.item-tile {
+  position: relative;
+  display: flex; flex-direction: column;
+  border-radius: var(--r-lg);
+  background: var(--well);
+  box-shadow: inset 0 0 0 1px var(--well-edge);
+  text-align: left; overflow: hidden;
+  transition: transform var(--d-base) var(--ease-out), box-shadow var(--d-fast) var(--ease-out), background var(--d-fast) var(--ease-out);
+}
+.item-tile:hover { transform: translateY(-2px); box-shadow: inset 0 0 0 1px var(--line), var(--sh-2); background: var(--surface-2); }
+.item-tile:active { transform: translateY(0); }
+.item-tile[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--accent) 10%, var(--well));
+  box-shadow: inset 0 0 0 2px var(--accent), var(--sh-1);
+}
+.item-tile .it-pic { aspect-ratio: 1; display: grid; place-items: center; color: var(--text-4); }
+.item-tile .it-pic img { width: 100%; height: 100%; object-fit: contain; -webkit-user-drag: none; }
+.item-tile .it-foot { display: flex; align-items: center; gap: 6px; padding: 0 8px 7px; min-height: 22px; }
+.item-tile .it-name { flex: 1; font-size: var(--t-12); font-weight: var(--w-medium); color: var(--text-1); }
+.item-tile .it-check {
+  position: absolute; top: 6px; right: 6px;
+  width: 18px; height: 18px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--accent); color: var(--text-inv);
+  box-shadow: 0 1px 3px rgba(0,0,0,.4);
+  animation: fg-pop var(--d-base) var(--ease-spring);
+}
+.item-tile .it-own {
+  position: absolute; top: 6px; left: 6px;
+  font-size: 9px; font-weight: var(--w-bold); letter-spacing: var(--tr-wide); text-transform: uppercase;
+  padding: 1px 5px; border-radius: var(--r-xs);
+  background: color-mix(in srgb, var(--gold-400) 22%, transparent); color: var(--gold-400);
+}
+:root[data-theme="bone"] .item-tile .it-own { color: var(--amber-700); }
+.item-tile-new, .item-tile-none { background: transparent; box-shadow: inset 0 0 0 1.5px var(--line-strong); }
+.item-tile-new { box-shadow: none; outline: 1.5px dashed var(--line-strong); outline-offset: -1.5px; }
+.item-tile-new:hover { outline-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.item-tile-new:hover .it-pic, .item-tile-new:hover .it-name { color: var(--accent); }
+
+.dots { display: inline-flex; gap: 2px; flex: none; }
+.dots i { display: block; width: 8px; height: 8px; border-radius: 1px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.3); }
+.base-dots { margin-top: 4px; flex-wrap: wrap; }
+
+/* Headings between groups on a shelf (the capes: yours, then Mojang's by kind). */
+.shelf-head {
+  grid-column: 1 / -1;
+  display: flex; align-items: baseline; gap: var(--s-2);
+  margin-top: var(--s-3); padding: 0 2px;
+  font-size: var(--t-11); font-weight: var(--w-bold); letter-spacing: var(--tr-wide); text-transform: uppercase;
+  color: var(--text-3);
+}
+.shelf-head .sh-sub { font-weight: var(--w-medium); text-transform: none; letter-spacing: 0; color: var(--text-4); }
+.item-tile-loading .it-pic { color: var(--text-4); }
+.item-tile .it-own.it-owned { background: color-mix(in srgb, var(--teal-400, #2BBAC2) 22%, transparent); color: var(--teal-400, #2BBAC2); }
+.item-tile-pick[aria-pressed="false"] .it-pic { opacity: .5; filter: saturate(.6); }
+.item-tile-pick[aria-pressed="false"]:hover .it-pic { opacity: .85; filter: none; }
+
+/* A bar across the top of a shelf, for what the shelf is doing right now. */
+.shelf-bar {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; gap: var(--s-2);
+  padding: 6px 6px 6px 10px;
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--accent) 7%, var(--well));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
+  font-size: var(--t-12); color: var(--text-2);
+}
+.shelf-bar .spacer { flex: 1; }
+.shelf-bar svg { color: var(--accent); flex: none; }
+
+/* Paint: the options the current tool has — brush size, rectangle fill. */
+.stage-bar .tool-opts .caption { margin-right: 2px; }
+.stage-bar .tool-opts .segmented button { min-width: 26px; justify-content: center; }
+.item-tile .it-count { font-size: var(--t-10); color: var(--text-4); font-family: var(--f-mono); white-space: nowrap; }
+
+.own-fields { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: var(--s-2); }
+
+/* ======================= PAINTING ON (the layer list) =================== */
+.pl-list { display: flex; flex-direction: column; gap: 3px; }
+.pl-row {
+  display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: var(--s-2);
+  padding: 4px;
+  border-radius: var(--r-md);
+  background: var(--well);
+  box-shadow: inset 0 0 0 1px var(--well-edge);
+  cursor: pointer;
+  transition: box-shadow var(--d-fast) var(--ease-out), background var(--d-fast) var(--ease-out);
+}
+.pl-row:hover { box-shadow: inset 0 0 0 1px var(--line); }
+.pl-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.pl-row[aria-selected="true"] { cursor: default; box-shadow: inset 0 0 0 1.5px var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--well)); }
+.pl-row[data-hidden="true"] .pl-pic, .pl-row[data-hidden="true"] .pl-main { opacity: .42; }
+.pl-pic { width: 34px; height: 34px; border-radius: var(--r-sm); background: var(--surface-2); overflow: hidden; display: grid; place-items: center; }
+.pl-pic img { width: 100%; height: 100%; object-fit: contain; }
+.pl-face canvas { width: 26px; height: 26px; image-rendering: pixelated; border-radius: 2px; }
+.pl-name { font-size: var(--t-12); font-weight: var(--w-semi); color: var(--text-1); }
+.pl-sub { font-size: var(--t-11); color: var(--text-4); }
+.pl-brush { width: 28px; display: grid; place-items: center; color: var(--accent); }
+.pl-new { align-self: flex-start; }
+
+/* ======================= ITEM MAKER ===================================== */
+.modal.modal-maker { width: min(1080px, 100%); }
+.mk { display: grid; grid-template-columns: minmax(0, 400px) minmax(0, 1fr); gap: var(--s-5); align-items: start; }
+.mk-left { display: flex; flex-direction: column; gap: var(--s-2); min-width: 0; }
+.mk-stage {
+  height: 420px; display: flex;
+  border-radius: var(--r-lg); overflow: hidden;
+  box-shadow: inset 0 0 0 1px var(--well-edge);
+}
+.mk-stage .stage-host { flex: 1; min-width: 0; }
+.mk-hint { font-size: var(--t-12); color: var(--text-3); line-height: var(--lh-snug); min-height: 2.8em; }
+.mk-left .btn[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+
+/* Show / hide body parts (the item maker and Paint): a shown part is a plain
+   chip, a hidden one fades and is struck through, so what is out of reach is
+   obvious at a glance. After the maker's pressed-button rule, so it wins. */
+.part-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.part-chips .eyebrow { margin-right: 2px; }
+.btn.part-chip { gap: 5px; }
+.btn.part-chip[aria-pressed="true"] { background: var(--surface-3); color: var(--text-1); box-shadow: none; }
+.btn.part-chip[aria-pressed="false"] { background: transparent; color: var(--text-4); box-shadow: inset 0 0 0 1px var(--line-soft); }
+.part-chip[aria-pressed="false"] span { text-decoration: line-through; }
+
+.mk-bar { display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; }
+.mk-left .mk-reset {
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.mk-left .mk-reset:hover { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.mk-count { font-size: var(--t-12); color: var(--text-3); min-height: 1.5em; font-variant-numeric: tabular-nums; }
+.mk-count b { color: #FF3B78; font-weight: var(--w-semi); }
+.mk-count b.back { color: #46D68C; }
+.mk-tip {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: var(--s-3);
+  border-radius: var(--r-md);
+  background: var(--well);
+  box-shadow: inset 0 0 0 1px var(--well-edge);
+  font-size: var(--t-12); color: var(--text-3); line-height: var(--lh-snug);
+}
+.mk-tip .strong { color: var(--text-1); font-size: var(--t-12); }
+.mk-tip p { margin: 0; }
+@media (max-width: 860px) { .mk { grid-template-columns: minmax(0, 1fr); } .mk-stage { height: 320px; } }
+
+/* ======================= SPLIT INTO PIECES ============================== */
+.split-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); gap: var(--s-3); }
+.split-card {
+  display: flex; flex-direction: column; gap: var(--s-2);
+  padding: var(--s-2);
+  border-radius: var(--r-lg);
+  background: var(--well);
+  box-shadow: inset 0 0 0 1px var(--well-edge);
+  transition: opacity var(--d-fast) var(--ease-out);
+}
+.split-card[data-off="true"] { opacity: .45; }
+.split-card .sc-pic {
+  aspect-ratio: 1; display: grid; place-items: center; overflow: hidden;
+  border-radius: var(--r-md);
+  background: radial-gradient(70% 55% at 50% 45%, var(--surface-3), var(--well));
+}
+.split-card .sc-pic canvas { width: 100%; height: auto; image-rendering: auto; }
+.split-card .sc-pic canvas.flat { image-rendering: pixelated; }
+
+/* ======================= STAGE (after Frame & Groove's editor) ========== */
+.stage-wrap { flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.stage-bar {
+  height: 44px; flex: none;
+  display: flex; align-items: center; gap: var(--s-2);
+  padding: 0 var(--s-3);
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--line-hair);
+  overflow-x: auto; overflow-y: hidden;
+  scrollbar-width: none;
+}
+.stage-bar::-webkit-scrollbar { display: none; }
+.stage-bar .sb-group { display: flex; align-items: center; gap: var(--s-1); flex: none; }
+.stage-bar .sb-sep { width: 1px; height: 20px; background: var(--line-soft); flex: none; }
+.stage-bar .btn[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+}
+.stage-bar .fit-select { width: 190px; }
+
+.stage-host { position: relative; flex: 1; min-height: 0; display: flex; }
+.stage {
+  flex: 1; min-height: 0; min-width: 0; position: relative; overflow: hidden;
+  background: var(--canvas-mat);
+  background-image:
+    radial-gradient(ellipse 120% 90% at 50% -10%, color-mix(in srgb, var(--accent) 6%, transparent), transparent 62%);
+  touch-action: none;
+  cursor: grab;
+}
+/* A pool of shadow under the feet, so the model stands on something. */
+.wd-stage::after {
+  content: ""; position: absolute; left: 50%; bottom: 7%;
+  width: min(46%, 260px); height: 34px; transform: translateX(-50%);
+  background: radial-gradient(50% 50% at 50% 50%, rgba(0,0,0,.42), transparent 72%);
+  pointer-events: none; z-index: 0;
+}
+:root[data-theme="bone"] .wd-stage::after { background: radial-gradient(50% 50% at 50% 50%, rgba(40,34,26,.2), transparent 72%); }
+.stage[data-orbiting="true"] { cursor: grabbing; }
+.stage[data-mode="paint"] { cursor: crosshair; }
+.stage[data-mode="paint"][data-tool="picker"] { cursor: copy; }
+.stage[data-mode="paint"][data-orbit-key="true"] { cursor: grab; }
+.stage[data-mode="paint"][data-orbiting="true"] { cursor: grabbing; }
+.stage-gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 1; image-rendering: auto; }
+.stage-fallback {
+  position: absolute; inset: 0; z-index: 2;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s-2);
+  padding: var(--s-8); text-align: center; color: var(--text-3);
+}
+
+.stage-hud {
+  position: absolute; bottom: var(--s-3); left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: var(--s-1);
+  padding: 4px; border-radius: var(--r-full);
+  background: var(--glass);
+  backdrop-filter: blur(22px) saturate(1.5); -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  box-shadow: var(--sh-3), 0 0 0 1px var(--line-soft);
+  z-index: 8;
+  opacity: .6; transition: opacity var(--d-base) var(--ease-out);
+}
+.stage:hover ~ .stage-hud, .stage-hud:hover { opacity: 1; }
+.stage-hud button { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; color: var(--text-2); }
+.stage-hud button:hover { background: var(--surface-3); color: var(--text-1); }
+.stage-hud .hud-view span { font-size: var(--t-11); font-weight: var(--w-bold); font-family: var(--f-mono); }
+.stage-hud .hud-sep { width: 1px; height: 16px; background: var(--line-soft); flex: none; }
+.stage-hud .coord {
+  padding: 0 var(--s-2); font-family: var(--f-mono); font-size: var(--t-11);
+  color: var(--text-3); font-variant-numeric: tabular-nums; min-width: 150px; text-align: center; white-space: nowrap;
+}
+
+/* ======================= INSPECTOR ====================================== */
+.wd-insp, .paint-side {
+  display: flex; flex-direction: column; min-width: 0; min-height: 0;
+  background: var(--surface-1);
+  border-left: 1px solid var(--line-hair);
+}
+.insp-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; }
+.insp-head { padding: var(--s-5) var(--s-4) var(--s-4); display: flex; flex-direction: column; gap: var(--s-2); border-bottom: 1px solid var(--line-hair); }
+.insp-name {
+  width: 100%; margin: 0 -6px; padding: 2px 6px;
+  font-size: var(--t-18); font-weight: var(--w-bold); letter-spacing: var(--tr-tighter); line-height: var(--lh-snug);
+  border-radius: var(--r-sm);
+  transition: background var(--d-fast) var(--ease-out), box-shadow var(--d-fast) var(--ease-out);
+}
+.insp-name:hover { background: var(--surface-2); }
+.insp-name:focus { background: var(--bg-sunken); box-shadow: inset 0 0 0 2px var(--accent); }
+.insp-badges { display: flex; flex-wrap: wrap; gap: 4px; }
+
+.base-card {
+  display: flex; align-items: center; gap: var(--s-3);
+  padding: var(--s-2);
+  border-radius: var(--r-md);
+  background: var(--well);
+  box-shadow: inset 0 0 0 1px var(--well-edge);
+}
+.base-card .bc-face canvas { width: 40px; height: 40px; image-rendering: pixelated; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0,0,0,.35), var(--sh-1); }
+
+/* ---- What is worn -------------------------------------------------------- */
+.wear-list { display: flex; flex-direction: column; gap: 4px; }
+.wear-row {
+  position: relative;
+  display: grid; grid-template-columns: 40px minmax(0, 1fr) auto auto; align-items: center; gap: var(--s-2);
+  padding: 5px 4px 5px 5px;
+  border-radius: var(--r-md);
+  background: var(--well);
+  box-shadow: inset 0 0 0 1px var(--well-edge);
+  cursor: pointer;
+  transition: box-shadow var(--d-fast) var(--ease-out), background var(--d-fast) var(--ease-out), opacity var(--d-fast) var(--ease-out);
+}
+.wear-row:hover { box-shadow: inset 0 0 0 1px var(--line); }
+.wear-row[aria-selected="true"] { box-shadow: inset 0 0 0 1.5px var(--accent); background: color-mix(in srgb, var(--accent) 7%, var(--well)); }
+.wear-row[data-hidden="true"] .wr-pic, .wear-row[data-hidden="true"] .wr-main { opacity: .45; }
+.wear-row .wr-pic { width: 40px; height: 40px; border-radius: var(--r-sm); background: var(--surface-2); overflow: hidden; }
+.wear-row .wr-pic img { width: 100%; height: 100%; object-fit: contain; }
+.wear-row .wr-name { font-size: var(--t-13); font-weight: var(--w-medium); color: var(--text-1); }
+.wear-row .wr-sub { display: flex; align-items: center; gap: 6px; font-size: var(--t-11); color: var(--text-3); }
+.cape-row { cursor: default; }
+.wear-block { display: flex; flex-direction: column; border-radius: var(--r-md); }
+.wear-block .wear-row { border-radius: var(--r-md) var(--r-md) 0 0; }
+.wear-detail {
+  display: flex; flex-direction: column; gap: var(--s-3);
+  padding: var(--s-3);
+  border-radius: 0 0 var(--r-md) var(--r-md);
+  background: color-mix(in srgb, var(--accent) 4%, var(--surface-2));
+  box-shadow: inset 1.5px 0 0 var(--accent), inset -1.5px 0 0 var(--accent), inset 0 -1.5px 0 var(--accent);
+  animation: fg-rise var(--d-base) var(--ease-out);
+}
+.wear-list .wear-row[data-dragging="true"], .wear-block[data-dragging="true"] { opacity: .35; }
+.wear-list [data-dropbefore="true"]::before, .wear-list [data-dropafter="true"]::after {
+  content: ""; position: absolute; left: 6px; right: 6px; height: 2px;
+  background: var(--accent); border-radius: 2px; z-index: 2;
+}
+.wear-list [data-dropbefore="true"]::before { top: -3px; }
+.wear-list [data-dropafter="true"]::after { bottom: -3px; }
+.wear-block { position: relative; }
+
+/* ---- Tint rows ----------------------------------------------------------- */
+.tint-list { display: flex; flex-direction: column; gap: 4px; }
+.tint-row {
+  display: grid; grid-template-columns: 30px minmax(0, 1fr) auto auto; align-items: center; gap: var(--s-2);
+  padding: 4px 4px 4px 4px;
+  border-radius: var(--r-md);
+  background: var(--well);
+  box-shadow: inset 0 0 0 1px var(--well-edge);
+}
+.tint-swatch {
+  width: 30px; height: 30px; border-radius: var(--r-sm);
+  background: var(--c, #888);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.3), inset 2px 2px 0 rgba(255,255,255,.18), inset -2px -2px 0 rgba(0,0,0,.22);
+  transition: transform var(--d-fast) var(--ease-spring);
+}
+.tint-swatch:hover { transform: scale(1.08); }
+.tint-row .tr-name { font-size: var(--t-12); font-weight: var(--w-semi); color: var(--text-1); }
+.tint-row .tr-sub { font-family: var(--f-mono); font-size: var(--t-10); color: var(--text-4); letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tint-row .tr-orig { width: 12px; height: 12px; border-radius: 2px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.35), 0 0 0 1px var(--line-hair); }
+.tint-row[data-tinted="false"] .tr-orig { visibility: hidden; }
+.tint-row[data-tinted="true"] { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent); }
+.tint-row[data-pipette="true"] { grid-template-columns: 30px minmax(0, 1fr) auto auto auto; }
+
+.tint-pop { padding: 10px 12px 6px; min-width: 232px; display: flex; flex-direction: column; gap: 6px; }
+.tint-pop .menu-label { padding: 0 0 4px; }
+.tp-grid { display: grid; grid-template-columns: repeat(8, 22px); gap: 5px; }
+.tp-tools { display: flex; gap: 4px; }
+.tp-tools .btn { flex: 1; justify-content: center; }
+
+/* ---- The any-colour picker ------------------------------------------------
+   kit.js builds it; its styles live in Frame & Groove's editor.css, which this
+   app does not load, so they are here. Without them the hue strip has no
+   height and the cursor does not move. */
+.sv-area {
+  position: relative; width: 100%; aspect-ratio: 1.55 / 1;
+  border-radius: var(--r-md); cursor: crosshair;
+  box-shadow: inset 0 0 0 1px var(--line-hair);
+  overflow: hidden;
+  touch-action: none;
+}
+.sv-area canvas { width: 100%; height: 100%; image-rendering: auto; display: block; }
+.sv-cursor {
+  position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px;
+  border-radius: 50%; border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.6), inset 0 0 0 1px rgba(0,0,0,.5);
+  pointer-events: none;
+}
+.hue-strip, .alpha-strip {
+  position: relative; height: 12px; border-radius: var(--r-full);
+  cursor: pointer; box-shadow: inset 0 0 0 1px var(--line-hair);
+  touch-action: none;
+}
+.hue-strip { background: linear-gradient(90deg, #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%); }
+.alpha-strip { background-size: 8px 8px; }
+.alpha-strip .a-grad { position: absolute; inset: 0; border-radius: inherit; }
+.strip-knob {
+  position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px;
+  border-radius: 50%; background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,.45), 0 0 0 1px rgba(0,0,0,.15);
+  pointer-events: none;
+}
+.cp-foot { display: flex; gap: 6px; margin-top: 10px; }
+.cp-foot .input { flex: 1; min-width: 0; }
+
+/* Picking a colour off the model: the stage says so, and the cursor too. */
+.stage[data-picking="true"], .stage[data-picking="true"] canvas { cursor: copy !important; }
+.pick-banner {
+  position: absolute; top: var(--s-3); left: 50%; transform: translateX(-50%); z-index: 9;
+  display: flex; align-items: center; gap: var(--s-2);
+  padding: 6px 8px 6px 12px; border-radius: var(--r-full);
+  background: var(--glass); backdrop-filter: blur(22px) saturate(1.5); -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  box-shadow: var(--sh-3), 0 0 0 1px color-mix(in srgb, var(--accent) 50%, transparent);
+  font-size: var(--t-12); color: var(--text-1); white-space: nowrap;
+}
+.pick-banner i { width: 14px; height: 14px; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.35); }
+
+/* ======================= DIALOGS ======================================== */
+.pic-pair { display: flex; gap: var(--s-2); }
+.pic-pair canvas {
+  width: 150px; height: 150px; max-width: 45%; height: auto; aspect-ratio: 1;
+  border-radius: var(--r-md);
+  background: radial-gradient(70% 55% at 50% 45%, var(--surface-3), var(--well));
+  box-shadow: inset 0 0 0 1px var(--well-edge);
+  image-rendering: auto;
+}
+.player-found { display: flex; gap: var(--s-4); align-items: center; flex-wrap: wrap; }
+.player-out { min-height: 36px; }
+
+.maker { display: flex; gap: var(--s-5); align-items: flex-start; }
+.maker-side { flex: none; width: 296px; }
+.maker-side .pic-pair canvas { width: 140px; }
+.maker-grid { display: grid; grid-template-columns: minmax(0, 1fr) 90px 90px; gap: 6px var(--s-3); align-items: center; }
+.maker-grid .check span:last-child { font-size: var(--t-11); color: var(--text-4); }
+@media (max-width: 760px) { .maker { flex-direction: column; } .maker-side { width: 100%; } }
+
+.choice-list { display: flex; flex-direction: column; gap: var(--s-2); }
+.choice {
+  display: flex; align-items: center; gap: var(--s-3);
+  width: 100%; padding: var(--s-3);
+  border-radius: var(--r-md); text-align: left;
+  background: var(--well); box-shadow: inset 0 0 0 1px var(--well-edge);
+  transition: box-shadow var(--d-fast) var(--ease-out), background var(--d-fast) var(--ease-out);
+}
+.choice:hover { box-shadow: inset 0 0 0 1.5px var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--well)); }
+.choice .ch-icon { color: var(--accent); }
+
+.base-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: var(--s-2); }
+.base-tile {
+  position: relative;
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 6px 6px 8px;
+  border-radius: var(--r-lg);
+  background: var(--well);
+  box-shadow: inset 0 0 0 1px var(--well-edge);
+  text-align: left;
+  transition: box-shadow var(--d-fast) var(--ease-out), transform var(--d-base) var(--ease-out);
+}
+.base-tile:hover { transform: translateY(-2px); box-shadow: inset 0 0 0 1px var(--line), var(--sh-2); }
+.base-tile[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--well)); }
+.base-tile .bt-pic { aspect-ratio: 1; display: grid; place-items: center; color: var(--text-4); }
+.base-tile .bt-pic canvas { width: 100%; height: 100%; image-rendering: auto; }
+.base-tile .bt-name { font-size: var(--t-12); font-weight: var(--w-semi); color: var(--text-1); padding: 0 2px; }
+.base-tile .bt-meta { font-size: var(--t-10); color: var(--text-4); padding: 0 2px; }
+.base-tile .bt-menu { position: absolute; top: 4px; right: 4px; opacity: 0; transition: opacity var(--d-fast) var(--ease-out); background: var(--glass); }
+.base-tile:hover .bt-menu, .base-tile:focus-within .bt-menu { opacity: 1; }
+.base-tile-new { background: transparent; box-shadow: none; outline: 1.5px dashed var(--line-strong); outline-offset: -1.5px; align-items: center; justify-content: center; text-align: center; }
+.base-tile-new:hover { outline-color: var(--accent); color: var(--accent); }
+.base-tile-new:hover .bt-pic, .base-tile-new:hover .bt-name { color: var(--accent); }
+
+/* ======================= OUTFITS ======================================== */
+.fit-card .fit-art {
+  aspect-ratio: 4 / 3;
+  background:
+    radial-gradient(60% 18% at 50% 92%, rgba(0,0,0,.28), transparent 70%),
+    radial-gradient(90% 80% at 50% 35%, color-mix(in srgb, var(--accent) 7%, var(--surface-2)), var(--bg-sunken));
+}
+.proj-card.fit-card .pc-art img { object-fit: contain; }
+.fit-card[data-current="true"] { box-shadow: var(--bevel), 0 0 0 1.5px color-mix(in srgb, var(--accent) 60%, transparent), var(--sh-2); }
+
+.hero-row { display: flex; gap: var(--s-2); align-items: stretch; }
+.hero-row .input-group .input { height: 46px; font-size: var(--t-16); padding-left: 40px; }
+.hero-row .input-group .input-icon { left: 14px; }
+
+/* ======================= PAINT ========================================== */
+.paint-layout {
+  display: grid;
+  grid-template-columns: var(--tooldock-w, 46px) minmax(0, 1fr) var(--paint-w);
+  flex: 1; min-width: 0; min-height: 0;
+}
+.tooldock {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 2px; padding: var(--s-2) 0;
+  background: var(--surface-1);
+  border-right: 1px solid var(--line-hair);
+  overflow-y: auto; overflow-x: hidden;
+}
+.tool-btn {
+  width: 34px; height: 34px; flex: none;
+  display: grid; place-items: center;
+  border-radius: var(--r-md);
+  color: var(--text-3);
+  transition: all var(--d-fast) var(--ease-out);
+  position: relative;
+}
+.tool-btn:hover { background: var(--surface-3); color: var(--text-1); }
+.tool-btn[aria-pressed="true"] {
+  background: var(--accent); color: var(--text-inv);
+  box-shadow: var(--bevel-hi), var(--sh-2);
+}
+.tool-btn[aria-pressed="true"]::before {
+  content: ""; position: absolute; bottom: 3px; right: 3px;
+  width: 3px; height: 3px; border-radius: 50%; background: var(--text-inv); opacity: .6;
+}
+.tooldock .rail-sep { width: 22px; height: 1px; background: var(--line-soft); margin: var(--s-2) 0; }
+
+.color-now {
+  width: 46px; height: 46px; flex: none; border-radius: var(--r-md);
+  background: var(--c, #E0784A);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.3), inset 3px 3px 0 rgba(255,255,255,.18), inset -3px -3px 0 rgba(0,0,0,.24), var(--sh-1);
+}
+.swatch-grid { display: grid; grid-template-columns: repeat(auto-fill, 22px); gap: 5px; }
+.swatch-grid:empty::before { content: "—"; font-size: var(--t-11); color: var(--text-4); }
+
+.flat-view {
+  position: relative; width: 100%; max-width: 256px; aspect-ratio: 1;
+  border-radius: var(--r-sm); overflow: hidden;
+  box-shadow: inset 0 0 0 1px var(--line), var(--sh-1);
+}
+.flat-view canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
+.flat-over { cursor: crosshair; touch-action: none; }
+
+/* ======================= EXPORT ========================================= */
+.export-wrap { max-width: 1120px; }
+.export-pics { display: flex; flex-wrap: wrap; gap: var(--s-3); align-items: center; }
+.export-pics > canvas {
+  width: 200px; height: 200px; max-width: 46%; height: auto; aspect-ratio: 1;
+  border-radius: var(--r-md);
+  background: radial-gradient(70% 55% at 50% 45%, var(--surface-3), var(--well));
+  box-shadow: inset 0 0 0 1px var(--well-edge);
+  image-rendering: auto;
+}
+.flat-preview { border-radius: var(--r-sm); overflow: hidden; box-shadow: inset 0 0 0 1px var(--line); line-height: 0; }
+.flat-preview canvas { width: 192px; height: auto; image-rendering: pixelated; }
+
+/* ======================= TOP BAR FIT ==================================== */
+.logo-word { white-space: nowrap; }
+.topbar .crumbs { flex: 0 1 auto; overflow: hidden; }
+.crumbs .crumb { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+@media (max-width: 1100px) { .crumbs .badge { display: none; } }
+@media (max-width: 900px) {
+  .crumbs > .crumb:first-child, .crumbs > .crumb:first-child + .sep { display: none; }
+}
+
+/* ======================= NARROW ========================================= */
+/* Below this the three columns cannot all be useful, so the view scrolls and
+   they stack: the model first, then what it is wearing, then the wardrobe. */
+@media (max-width: 960px) {
+  .view[data-view="dress"], .view[data-view="paint"] { overflow-y: auto; }
+  /* The columns stop sharing one screen-height, so the grid has to size to
+     its content rather than squeeze every row into the view. */
+  .wd-layout, .paint-layout { flex: none; min-height: auto; }
+  .wd-layout > *, .paint-layout > * { min-height: auto; }
+  .wd-layout .insp-scroll, .wd-layout .cat-scroll, .paint-layout .insp-scroll { flex: none; }
+  .wd-layout { grid-template-columns: minmax(0, 1fr); grid-auto-rows: auto; }
+  .wd-layout .stage-wrap { order: 1; height: 62vh; flex: none; }
+  .wd-layout .wd-insp { order: 2; border-left: 0; border-top: 1px solid var(--line-hair); }
+  .wd-layout .wd-catalog { order: 3; border-right: 0; border-top: 1px solid var(--line-hair); }
+  .wd-layout .insp-scroll, .wd-layout .cat-scroll { overflow: visible; }
+  .paint-layout { grid-template-columns: var(--tooldock-w, 46px) minmax(0, 1fr); }
+  .paint-layout .stage-wrap { height: 62vh; }
+  .paint-layout .paint-side { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line-hair); }
+}
+
+/* ======================= BONE =========================================== */
+/* As in All The Sounds: the wells come up a step, so a screen of them reads
+   as paper rather than grey mud. */
+:root[data-theme="bone"] {
+  --bg-sunken: #E4DFD6;
+  --grain-opacity: 0.03;
+  --well: var(--surface-3);
+  --well-edge: var(--line);
+}
+:root[data-theme="bone"] .rail-btn .rb-icon { opacity: .78; filter: saturate(.7); }
+:root[data-theme="bone"] .rail-btn:hover .rb-icon { opacity: .95; filter: saturate(.9); }
+:root[data-theme="bone"] .rail-btn[aria-current="true"] .rb-icon { opacity: 1; filter: none; }
+:root[data-theme="bone"] .rail-btn:disabled .rb-icon { opacity: .3; filter: saturate(0); }
+:root[data-theme="bone"] .stage { background-color: #D6D1C7; }
