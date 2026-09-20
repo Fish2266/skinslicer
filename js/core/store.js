@@ -11,6 +11,7 @@
    ========================================================================= */
 
 import { Outfits, Bases, Items, Capes, Looks, Prefs, Cache, requestPersistence } from './db.js';
+import { syncThemeColor } from './themecolor.js';
 import { debounce, uid } from './util.js';
 import { createOutfit, outfitToJSON, outfitFromJSON, outfitStats, migrate, findWorn, wornEntry, cleanTints } from '../skin/outfit.js';
 import { presetLayer, presetById } from '../skin/items.js';
@@ -120,6 +121,7 @@ export function setPref(key, value) {
 export function applyPrefs() {
   const root = document.documentElement;
   root.dataset.theme = state.prefs.theme || 'deepslate';
+  syncThemeColor();          // the iOS status bar follows the top bar
   document.body.dataset.grain = state.prefs.grain ? 'on' : 'off';
   root.dataset.textures = state.prefs.textures === false ? 'off' : 'on';
   if (state.prefs.reduceMotion) root.style.setProperty('--d-base', '0ms');
