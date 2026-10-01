@@ -5,9 +5,9 @@
 
 import { h, raw } from '../core/dom.js';
 import { icon } from '../core/icons.js';
-import { plural, AppError, rafBatch, hasMod } from '../core/util.js';
+import { plural, AppError, rafBatch, hasMod, debounce } from '../core/util.js';
 import {
-  state, bus, addBase, addStarterBase, addCape, addItem, newProject, setRoute, setOutfitBase,
+  state, bus, addBase, addStarterBase, addCape, addItem, newProject, setRoute, setOutfitBase, baseOf, composeOutfit,
   setCape, outfitChanged, outfitsUsingBase, renameBase, deleteBase, saveBase, basesSorted,
   firstBaseId, toggleWear, ensureWorn, adoptPreset, itemLayer, replaceWithPieces, deleteOwn, addLook,
   resolveItem, modelOf,
@@ -18,6 +18,7 @@ import { PARTS, PART_LABEL, VIEW_PART, layout, mirrorTexel, SKIN } from '../skin
 import { CATEGORIES } from '../skin/items.js';
 import { remapTints, layerFromPixels } from '../skin/tint.js';
 import { composeSkin, atlas } from '../skin/compose.js';
+import { ghostOuter, ghostPixels, GHOST_OPACITY } from '../skin/ghost.js';
 import { PIECES, splitPieces, guessShoeRows, colourMask, skinMask, wandSelect, partMask, partHasPixels, tolerance } from '../skin/split.js';
 import { OUTER_PARTS } from '../model/models.js';
 import {
@@ -731,7 +732,7 @@ export async function openDroppedImage(file) {
 function baseTile(b, { selected = false, onPick, menu } = {}) {
   const pic = renderScene({ skin: b.img, slim: b.model === 'slim', view: 'front', px: 112 }) || faceCanvas(b.img, 8);
   const used = outfitsUsingBase(b.id).length;
-  const src = b.source?.kind === 'player' ? `${b.source.name}’s skin` : b.source?.kind === 'starter' ? 'Starter' : 'From a file';
+  const src = sourceLabel(b, true);
   return h('button.base-tile', {
     'aria-pressed': String(selected),
     onclick: onPick,
@@ -801,6 +802,88 @@ async function refreshBase(b) {
   }
 }
 
+/** What a base skin came from, for a tile or a card. */
+export function sourceLabel(b, short = false) {
+  const s = b.source || {};
+  if (s.kind === 'player') return short ? `${s.name}’s skin` : `${s.name}’s skin`;
+  if (s.kind === 'starter') return short ? 'Starter' : 'The mannequin';
+  if (s.kind === 'ghost') return `Ghost of ${s.name || 'a skin'}`;
+  return short ? 'From a file' : s.name || 'From a file';
+}
+
+/* ========================================================================= */
+/* THE GHOST LAYER                                                           */
+/* ========================================================================= */
+
+/**
+ * Fill a skin's outer layer with a half-transparent copy of the body, which
+ * the game then draws a sliver proud of it — the glitched look. It makes a
+ * new base skin; the one it was made from is left alone.
+ */
+export function openGhostDialog({ base = null } = {}) {
+  const o = state.project;
+  const from = base || baseOf(o);
+  if (!from) {
+    toast({ title: 'No skin to work from', message: 'Open an outfit, or add a base skin first.', kind: 'warn' });
+    return;
+  }
+  const model = from.model || 'classic';
+  /* "Everything worn" only means something when this is the skin the open
+     outfit is built on, and there is something on it. */
+  const canFlatten = !!o && baseOf(o)?.id === from.id && o.items.length > 0;
+  let source = 'base', opacity = Math.round(GHOST_OPACITY * 100), keepOuter = false;
+  let wear = !!o, name = `${from.name} ghost`;
+
+  const pic = h('div');
+  const count = h('.caption.muted');
+  const sourceImg = () => (source === 'outfit' && canFlatten ? composeOutfit(o, { cape: false }).skin : from.img);
+  const result = () => ghostOuter(sourceImg(), model, { opacity: opacity / 100, keepOuter });
+  const paint = debounce(() => {
+    const img = result();
+    pic.replaceChildren(pics(img, { slim: model === 'slim' }));
+    count.textContent = `${ghostPixels(img).toLocaleString()} pixels of ghost at ${opacity}%. The body underneath is untouched.`;
+  }, 50);
+
+  modal({
+    title: 'Ghost layer', icon: 'layers', width: 'wide',
+    subtitle: 'The outer layer filled with a see-through copy of the body, so the skin reads as smeared out of register with itself.',
+    body: h('.col.g-4',
+      pic,
+      count,
+      canFlatten ? field('From', segmented({
+        options: [{ value: 'base', label: 'The base skin' }, { value: 'outfit', label: 'Everything worn' }],
+        value: source, block: true, onChange: v => { source = v; paint(); },
+      }), 'Everything worn is flattened into the skin first. The ghost is a copy of the body, so a hat or a jacket that sits only on the outer layer is replaced — unless you keep it, below.') : null,
+      field('How solid', slider({
+        min: 10, max: 90, value: opacity, format: v => `${v}%`,
+        onInput: v => { opacity = v; paint(); }, onChange: v => { opacity = v; paint(); },
+      }), 'Half is what the effect is usually drawn at. Lower is a faint shimmer; higher starts to hide the body it is a copy of.'),
+      checkbox({ label: 'Keep what is already on the outer layer', checked: keepOuter, onChange: v => { keepOuter = v; paint(); } }),
+      h('.form-grid',
+        field('Name', textInput({ value: name, maxlength: 60, onInput: v => { name = v; } })),
+        o ? h('.field', h('label', { text: 'When it is made' }), checkbox({ label: `Wear it on ${o.name}`, checked: wear, onChange: v => { wear = v; } })) : null,
+      ),
+      note('A new base skin, so the one it came from stays as it is. Anything you wear over it with “hide the base’s outer layer under it” on will cut the ghost away where it sits.', 'info'),
+    ),
+    actions: [
+      { label: 'Cancel' },
+      { label: 'Make the skin', primary: true, run: async () => {
+          const rec = await addBase({
+            name: name.trim() || `${from.name} ghost`, model, img: result(),
+            source: { kind: 'ghost', from: from.id, name: from.name, opacity: opacity / 100 },
+          });
+          if (wear && state.project) setOutfitBase(rec.id);
+          toast({
+            title: 'Ghost skin made',
+            message: wear && state.project ? `${state.project.name} is built on ${rec.name}.` : `${rec.name} is with your base skins.`,
+            kind: 'ok',
+          });
+        } },
+    ],
+  });
+  paint();
+}
+
 function baseMenu(b, at) {
   const used = outfitsUsingBase(b.id).length;
   contextMenu([
@@ -811,6 +894,7 @@ function baseMenu(b, at) {
     { label: 'Duplicate', icon: 'duplicate', run: () => addBase({ name: `${b.name} copy`, model: b.model, img: b.img, source: b.source }) },
     b.source?.kind === 'player' ? { label: `Refresh from ${b.source.name}’s account`, icon: 'refresh', run: () => refreshBase(b) } : null,
     { label: 'Make items from it…', icon: 'sparkle', run: () => openItemMaker(b.img, { name: `${b.name}’s look`, model: b.model, source: b.source }) },
+    { label: 'Ghost layer…', icon: 'layers', run: () => openGhostDialog({ base: b }) },
     '-',
     { label: used ? `Used by ${plural(used, 'outfit')}` : 'Delete…', icon: 'trash', destructive: !used, disabled: !!used, run: async () => {
         const ok = await confirmDialog({ title: `Delete “${b.name}”?`, message: 'The skin is removed from this browser.', confirmLabel: 'Delete', danger: true });

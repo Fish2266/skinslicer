@@ -35,7 +35,7 @@ import { createStage } from '../stage.js';
 import { itemThumbURL, capeThumbURL, lookThumbURL, faceCanvas } from '../thumbs.js';
 import { tintEditor, swatchDots, closeTintPopover, nothingThere } from '../tintui.js';
 import { wardIcon } from '../wardicons.js';
-import { openBasePicker, openPlayerDialog, openSkinFileDialog, openCapeFileDialog, openSplitDialog, openItemInPaint } from '../sources.js';
+import { openBasePicker, openPlayerDialog, openSkinFileDialog, openCapeFileDialog, openSplitDialog, openItemInPaint, openGhostDialog, sourceLabel } from '../sources.js';
 
 const SHELVES = [
   ...CATEGORIES.map(c => ({ ...c, kind: 'items' })),
@@ -516,7 +516,7 @@ export function buildDressView() {
     if (!base) {
       return section('Base skin', [note('This outfit’s base skin is gone. Pick another.', 'warn'), h('button.btn.btn-sm', { onclick: () => openBasePicker() }, 'Pick a base')], { key: 'dress-base' });
     }
-    const src = base.source?.kind === 'player' ? `${base.source.name}’s skin` : base.source?.kind === 'starter' ? 'The mannequin' : base.source?.name || 'From a file';
+    const src = sourceLabel(base);
     const pal = basePalette(base);
     return section('Base skin', [
       h('.base-card',
@@ -537,6 +537,10 @@ export function buildDressView() {
           },
         })),
         h('button.btn.btn-sm', { 'data-tip': 'Paint this base in 3D', onclick: () => { state.paint.target = 'base'; setRoute('paint'); } }, raw(icon('pencil', 13)), h('span', { text: 'Paint' })),
+        h('button.btn.btn-sm', {
+          'data-tip': 'Ghost layer — a see-through copy of the body on the outer layer, for the glitched look',
+          onclick: () => openGhostDialog({ base }),
+        }, raw(icon('layers', 13)), h('span', { text: 'Ghost' })),
       ),
       o.items.length && pal.match.length ? h('button.btn.btn-sm', {
         onclick: () => matchTo('skin'),

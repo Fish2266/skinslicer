@@ -20,7 +20,7 @@ import { sfxPreview } from './sfx.js';
 import { markCanvas } from './brandmark.js';
 import { pixIcon } from './pixicons.js';
 import { wardIcon } from './wardicons.js';
-import { openDroppedImage, openPlayerDialog, openNewOutfitDialog, openSkinFileDialog, openCapeFileDialog, openBasePicker } from './sources.js';
+import { openDroppedImage, openPlayerDialog, openNewOutfitDialog, openSkinFileDialog, openCapeFileDialog, openBasePicker, openGhostDialog } from './sources.js';
 
 /* The chest and the tray are Frame & Groove's own rail icons (pixicons.js is
    a straight copy); the tunic and the brush are this app's. */
@@ -247,6 +247,7 @@ function palette() {
       { group: 'Create', label: 'Draw a new item…', icon: 'pencil', weight: 5, keywords: 'paint blank item', run: () => { state.paint.target = 'new'; setRoute('paint', { force: true }); } },
       { group: 'Go', label: 'Export', icon: 'download', key: 'mod+4', weight: 9, run: () => setRoute('export') },
       { group: 'Outfit', label: 'Change the base skin…', icon: 'image', weight: 7, keywords: 'base skin switch', run: () => openBasePicker() },
+      { group: 'Outfit', label: 'Ghost layer…', icon: 'layers', weight: 6, keywords: 'glitch corrupt transparent outer layer effect', run: () => openGhostDialog() },
       { group: 'Outfit', label: 'Save now', icon: 'save', key: 'mod+S', weight: 5, run: () => saveProject().then(() => toast({ title: 'Saved', kind: 'ok', duration: 1400 })) },
       { group: 'Outfit', label: 'Close outfit', icon: 'x', weight: 4, run: async () => { await closeProject(); setRoute('outfits'); } },
     );

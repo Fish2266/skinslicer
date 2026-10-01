@@ -3,7 +3,8 @@
 A 3D wardrobe for Minecraft skins. Start from a base skin, put things on over
 it — hats, tops, bottoms, shoes, any official Java cape — and tint every colour
 of every piece on its own. Cut clothes out of anyone's skin, paint your own,
-save a few pieces together as a look. Keep as many outfits as you like, swap
+save a few pieces together as a look, or ghost a skin's outer layer for the
+glitched look. Keep as many outfits as you like, swap
 between them, and export any of them as the one PNG the game reads. Runs
 entirely in the browser — no build step, no account.
 
@@ -171,6 +172,27 @@ the sheet. A base's base layer has no eraser — the game
 draws it opaque — but items can be erased anywhere: they only cover what they
 paint. Undo is per base and per item.
 
+## The ghost layer
+
+A skin's outer layer is normally the hat, the jacket, the sleeves: a second
+shell the game draws half a pixel proud of the body. Fill that shell with a
+see-through copy of the body itself and every pixel is drawn twice with a
+sliver of air between the two, so the figure reads as smeared out of register
+with itself — the glitched, corrupted look. It works on any skin, because the
+only colours it uses are that skin's own.
+
+**Base skin → Ghost** in the Dress inspector, from a base's right-click menu,
+or "Ghost layer…" in the command palette (`js/skin/ghost.js`). It makes a new
+base skin and leaves the one it came from alone. How solid the ghost is runs
+from 10% to 90%, and half — alpha 128 — is what the effect is usually drawn
+at. It can be taken from the base skin alone or from everything worn,
+flattened in first, and it can leave the outer layer be wherever a hat or a
+jacket is already there.
+
+Only the outer layer is touched. The base layer is left as it is, which is
+just as well: the game forces that layer opaque whatever the file says, so a
+ghost drawn there would simply go solid.
+
 ## Hand-drawn art
 
 The icons and the preset wardrobe are drawn in code, and each has an escape
@@ -261,6 +283,7 @@ js/
           items-overrides                     hand-drawn items, written by the local studio
           capes                               every official cape by texture id, and the Fish
           split                               erasing by colour, cutting items into pieces
+          ghost                               the see-through outer layer
           image compose outfit                reading, flattening, the document
           mojang                              the name lookup
   export/ zip                                 copied from All The Sounds
